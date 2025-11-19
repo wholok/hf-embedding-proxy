@@ -71,7 +71,7 @@ app.post('/api/hf-embed', async (req, res) => {
     console.log(`📤 Embedding request: model=${model}, text_length=${inputs.length}`);
 
     // Use Hugging Face Inference API
-    const hfUrl = `https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`;
+    const hfUrl = `https://api-inference.huggingface.co/pipeline/feature-extraction/${encodeURIComponent(model)}`;
 
     const response = await axios.post(
       hfUrl,
@@ -133,7 +133,7 @@ app.post('/api/hf-embed-batch', async (req, res) => {
 
     const promises = texts.map(text =>
       axios.post(
-        `https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`,
+       `https://api-inference.huggingface.co/pipeline/feature-extraction/${encodeURIComponent(model)}`;,
         { inputs: text, options: { wait_for_model: true } },
         {
           headers: {
@@ -143,7 +143,7 @@ app.post('/api/hf-embed-batch', async (req, res) => {
           timeout: 60000
         }
       )
-    );
+    ),
 
     const responses = await Promise.all(promises);
     const embeddings = responses.map(r => r.data);
@@ -166,7 +166,7 @@ app.post('/api/test', async (req, res) => {
     console.log(`🧪 Testing with model: ${testModel}`);
 
     const response = await axios.post(
-      `https://api-inference.huggingface.co/models/${testModel}`,
+       `https://api-inference.huggingface.co/pipeline/feature-extraction/${testModel}`
       {
         inputs: testText,
         options: { wait_for_model: true }
@@ -205,3 +205,4 @@ app.listen(PORT, () => {
   console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`✅ CORS enabled for all origins`);
 });
+
