@@ -20,6 +20,12 @@ const HF_API_KEY = process.env.HF_API_KEY;
 console.log('🚀 Server starting...');
 console.log('✓ HF_API_KEY loaded:', HF_API_KEY ? 'YES' : 'NO');
 
+if (!HF_API_KEY) {
+  console.error('❌ CRITICAL: HF_API_KEY environment variable is not set!');
+  console.error('⚠️  Please set HF_API_KEY in Render environment variables');
+  process.exit(1);
+}
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({
@@ -70,7 +76,7 @@ app.post('/api/hf-embed', async (req, res) => {
 
     console.log(`📤 Embedding request: model=${model}, text_length=${inputs.length}`);
 
-    // Use Hugging Face Inference API
+    // Use NEW Hugging Face Serverless Inference API
     const hfUrl = `https://api-inference.huggingface.co/pipeline/feature-extraction/${encodeURIComponent(model)}`;
 
     const response = await axios.post(
@@ -133,7 +139,7 @@ app.post('/api/hf-embed-batch', async (req, res) => {
 
     const promises = texts.map(text =>
       axios.post(
-       `https://api-inference.huggingface.co/pipeline/feature-extraction/${encodeURIComponent(model)}`;,
+        `https://api-inference.huggingface.co/pipeline/feature-extraction/${encodeURIComponent(model)}`,
         { inputs: text, options: { wait_for_model: true } },
         {
           headers: {
@@ -143,7 +149,7 @@ app.post('/api/hf-embed-batch', async (req, res) => {
           timeout: 60000
         }
       )
-    ),
+    );
 
     const responses = await Promise.all(promises);
     const embeddings = responses.map(r => r.data);
@@ -166,7 +172,7 @@ app.post('/api/test', async (req, res) => {
     console.log(`🧪 Testing with model: ${testModel}`);
 
     const response = await axios.post(
-       `https://api-inference.huggingface.co/pipeline/feature-extraction/${testModel}`
+      `https://api-inference.huggingface.co/pipeline/feature-extraction/${testModel}`,
       {
         inputs: testText,
         options: { wait_for_model: true }
@@ -205,4 +211,3 @@ app.listen(PORT, () => {
   console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`✅ CORS enabled for all origins`);
 });
-
