@@ -74,12 +74,13 @@ app.post('/api/hf-embed', async (req, res) => {
       });
     }
 
-    console.log(`📤 Embedding request: model=${model}, text_length=${inputs.length}`);
+        console.log(`📤 Embedding request: model=${model}, text_length=${inputs.length}`);
 
-    // Use NEW Hugging Face Serverless Inference API
-    const hfUrl = `https://api-inference.huggingface.co/pipeline/feature-extraction/${encodeURIComponent(model)}`;
+    // Use NEWEST Hugging Face Router Inference API (2025)
+    const hfUrl = `https://router.huggingface.co/hf-inference/pipeline/feature-extraction/${encodeURIComponent(model)}`;
 
     const response = await axios.post(
+
       hfUrl,
       {
         inputs: inputs,
@@ -137,9 +138,9 @@ app.post('/api/hf-embed-batch', async (req, res) => {
 
     console.log(`📤 Batch embedding: model=${model}, count=${texts.length}`);
 
-    const promises = texts.map(text =>
+   const promises = texts.map(text =>
       axios.post(
-        `https://api-inference.huggingface.co/pipeline/feature-extraction/${encodeURIComponent(model)}`,
+        `https://router.huggingface.co/hf-inference/pipeline/feature-extraction/${encodeURIComponent(model)}`,
         { inputs: text, options: { wait_for_model: true } },
         {
           headers: {
@@ -169,11 +170,12 @@ app.post('/api/test', async (req, res) => {
     const testModel = 'sentence-transformers/all-MiniLM-L6-v2';
     const testText = 'What is the capital of France?';
 
-    console.log(`🧪 Testing with model: ${testModel}`);
+        console.log(`🧪 Testing with model: ${testModel}`);
 
     const response = await axios.post(
-      `https://api-inference.huggingface.co/pipeline/feature-extraction/${testModel}`,
+      `https://router.huggingface.co/hf-inference/pipeline/feature-extraction/${testModel}`,
       {
+
         inputs: testText,
         options: { wait_for_model: true }
       },
@@ -211,3 +213,4 @@ app.listen(PORT, () => {
   console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`✅ CORS enabled for all origins`);
 });
+
