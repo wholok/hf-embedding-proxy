@@ -1,12 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
+const { HfInference } = require('@huggingface/inference');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CRITICAL: Allow ALL origins for Ancient Brain
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'OPTIONS'],
@@ -17,21 +16,22 @@ app.use(express.json());
 
 const HF_API_KEY = process.env.HF_API_KEY;
 
-console.log('🚀 Server starting...');
-console.log('✓ HF_API_KEY loaded:', HF_API_KEY ? 'YES' : 'NO');
-
 if (!HF_API_KEY) {
   console.error('❌ CRITICAL: HF_API_KEY environment variable is not set!');
-  console.error('⚠️  Please set HF_API_KEY in Render environment variables');
   process.exit(1);
 }
+
+const hf = new HfInference(HF_API_KEY);
+
+console.log('🚀 Server starting...');
+console.log('✓ HF_API_KEY loaded: YES');
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    apiKeyLoaded: !!HF_API_KEY,
+    apiKeyLoaded: true,
     uptime: process.uptime()
   });
 });
@@ -47,16 +47,6 @@ app.get('/', (req, res) => {
       'Single Embedding': 'POST /api/hf-embed',
       'Batch Embeddings': 'POST /api/hf-embed-batch',
       'Diagnostic Test': 'POST /api/test'
-    },
-    usage: {
-      single: {
-        method: 'POST',
-        url: '/api/hf-embed',
-        body: {
-          model: 'sentence-transformers/all-MiniLM-L6-v2',
-          inputs: 'Your text here'
-        }
-      }
     }
   });
 });
@@ -67,60 +57,29 @@ app.post('/api/hf-embed', async (req, res) => {
     const { model, inputs } = req.body;
 
     if (!model || !inputs) {
-      console.error('❌ Missing model or inputs');
       return res.status(400).json({
         error: 'Missing required fields',
         required: { model: 'string', inputs: 'string' }
       });
     }
 
-        console.log(`📤 Embedding request: model=${model}, text_length=${inputs.length}`);
+    console.log(`📤 Embedding request: model=${model}, text_length=${inputs.length}`);
 
-    // Use NEWEST Hugging Face Router Inference API (2025)
-    const hfUrl = `https://router.huggingface.co/hf-inference/pipeline/feature-extraction/${encodeURIComponent(model)}`;
+    // Use Hugging Face Inference SDK
+    const result = await hf.featureExtraction({
+      model: model,
+      inputs: inputs
+    });
 
-    const response = await axios.post(
-
-      hfUrl,
-      {
-        inputs: inputs,
-        options: { wait_for_model: true }
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${HF_API_KEY}`
-        },
-        timeout: 60000
-      }
-    );
-
-    console.log(`✅ HF API response received for ${model}`);
-    res.json(response.data);
+    console.log(`✅ Got embedding, dimensions: ${result.length}`);
+    res.json(result);
 
   } catch (error) {
     console.error('❌ Error in /api/hf-embed:', error.message);
-
-    if (error.response) {
-      console.error(`   HF Status: ${error.response.status}`);
-      console.error(`   HF Response:`, JSON.stringify(error.response.data).slice(0, 200));
-
-      res.status(error.response.status).json({
-        error: error.message,
-        hfStatus: error.response.status,
-        hfData: error.response.data
-      });
-    } else if (error.code === 'ECONNABORTED') {
-      res.status(504).json({
-        error: 'Request timeout - model may be loading',
-        suggestion: 'Wait 30 seconds and try again'
-      });
-    } else {
-      res.status(500).json({
-        error: error.message,
-        type: 'Network or server error'
-      });
-    }
+    res.status(500).json({
+      error: error.message,
+      type: 'Embedding extraction failed'
+    });
   }
 });
 
@@ -138,22 +97,14 @@ app.post('/api/hf-embed-batch', async (req, res) => {
 
     console.log(`📤 Batch embedding: model=${model}, count=${texts.length}`);
 
-   const promises = texts.map(text =>
-      axios.post(
-        `https://router.huggingface.co/hf-inference/pipeline/feature-extraction/${encodeURIComponent(model)}`,
-        { inputs: text, options: { wait_for_model: true } },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${HF_API_KEY}`
-          },
-          timeout: 60000
-        }
-      )
+    const promises = texts.map(text =>
+      hf.featureExtraction({
+        model: model,
+        inputs: text
+      })
     );
 
-    const responses = await Promise.all(promises);
-    const embeddings = responses.map(r => r.data);
+    const embeddings = await Promise.all(promises);
 
     console.log(`✅ Batch complete: ${embeddings.length} embeddings`);
     res.json({ count: embeddings.length, results: embeddings });
@@ -170,30 +121,19 @@ app.post('/api/test', async (req, res) => {
     const testModel = 'sentence-transformers/all-MiniLM-L6-v2';
     const testText = 'What is the capital of France?';
 
-        console.log(`🧪 Testing with model: ${testModel}`);
+    console.log(`🧪 Testing with model: ${testModel}`);
 
-    const response = await axios.post(
-      `https://router.huggingface.co/hf-inference/pipeline/feature-extraction/${testModel}`,
-      {
-
-        inputs: testText,
-        options: { wait_for_model: true }
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${HF_API_KEY}`
-        },
-        timeout: 60000
-      }
-    );
+    const result = await hf.featureExtraction({
+      model: testModel,
+      inputs: testText
+    });
 
     res.json({
       success: true,
       model: testModel,
       text: testText,
-      embedding: response.data,
-      embeddingLength: Array.isArray(response.data) ? response.data.length : 'unknown',
+      embedding: result,
+      embeddingLength: result.length,
       message: 'API is working correctly!'
     });
 
@@ -201,8 +141,7 @@ app.post('/api/test', async (req, res) => {
     console.error('❌ Test failed:', error.message);
     res.status(500).json({
       success: false,
-      error: error.message,
-      details: error.response?.data
+      error: error.message
     });
   }
 });
@@ -210,7 +149,5 @@ app.post('/api/test', async (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`✅ CORS enabled for all origins`);
 });
-
