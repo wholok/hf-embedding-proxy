@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 // ========== HEALTH CHECK ENDPOINT ==========
 app.get('/health', (req, res) => {
   res.json({
-    status: 'OK',
+    status: 'status',
     timestamp: new Date().toISOString(),
     environment: NODE_ENV,
     apiKeyLoaded: !!HF_API_KEY,
@@ -333,3 +333,4 @@ process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down gracefully');
   process.exit(0);
 });
+
