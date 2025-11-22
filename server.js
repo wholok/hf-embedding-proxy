@@ -26,7 +26,7 @@ const hf = new HfInference(HF_API_KEY);
 console.log('🚀 Server starting...');
 console.log('✓ HF_API_KEY loaded: YES');
 
-// Health check
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'OK',
@@ -36,7 +36,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Root endpoint
+
 app.get('/', (req, res) => {
   res.json({
     name: 'Hugging Face Embedding Proxy API',
@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Main embedding endpoint
+
 app.post('/api/hf-embed', async (req, res) => {
   try {
     const { model, inputs } = req.body;
@@ -65,7 +65,7 @@ app.post('/api/hf-embed', async (req, res) => {
 
     console.log(`📤 Embedding request: model=${model}, text_length=${inputs.length}`);
 
-    // Use Hugging Face Inference SDK
+   
     const result = await hf.featureExtraction({
       model: model,
       inputs: inputs
@@ -83,7 +83,7 @@ app.post('/api/hf-embed', async (req, res) => {
   }
 });
 
-// Batch embeddings
+
 app.post('/api/hf-embed-batch', async (req, res) => {
   try {
     const { model, texts } = req.body;
@@ -115,7 +115,7 @@ app.post('/api/hf-embed-batch', async (req, res) => {
   }
 });
 
-// Test endpoint
+
 app.post('/api/test', async (req, res) => {
   try {
     const testModel = 'sentence-transformers/all-MiniLM-L6-v2';
@@ -146,8 +146,9 @@ app.post('/api/test', async (req, res) => {
   }
 });
 
-// Start server
+
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`✅ CORS enabled for all origins`);
 });
+
